@@ -6,70 +6,43 @@ from datetime import datetime, timedelta
 import plotly.graph_objects as go
 import time
 
-# 1. إعدادات الصفحة
+# 1. تهيئة الصفحة
 st.set_page_config(
-    page_title="📈 منصة تجريبية للتحليل والتنبؤ الورقي",
-    page_icon="💹",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="📊 منصة Tshren Crypto الخوارزمية المدمجة",
+    page_icon="⚡",
+    layout="wide"
 )
 
-# CSS مخصص للواجهة والتنبيهات
 st.markdown("""
     <style>
-    .main { background-color: #0f1419; color: #ffffff; }
-    .legal-warning {
-        background-color: #3b1818;
-        border: 2px solid #ff4b4b;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        color: #ffffff;
-    }
-    .strategy-info {
-        background-color: #1a2332;
-        border-right: 5px solid #00d4ff;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-    }
-    .plan-card {
-        background-color: #16212e;
-        border: 1px solid #2e3e50;
-        padding: 15px;
-        border-radius: 8px;
+    .main { background-color: #0b0e14; color: #e6edf3; }
+    .stApp { background-color: #0b0e14; }
+    .disclaimer-box {
+        background-color: #2a1215;
+        border: 1px solid #ff4d4d;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 15px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# ---------------------------------------------------------
-# 2. إخلاء المسؤولية القانونية التنبيهي في بداية الصفحة
-# ---------------------------------------------------------
+# 2. التعهد والإقرار القانوني
 st.markdown("""
-<div class="legal-warning">
-    <h3 style="margin-top:0; color:#ff6b6b;">⚠️ إشعار وتعهد قانوني: منصة تجريبية للتعلم فقط</h3>
-    <p><b>تنبيه هام جداً:</b> هذه المنصة مخصصة لأغراض <b>التعليم والتداول الورقي التجريبي (Paper Trading) وتجربة البرمجة فقط</b>. 
-    البيانات والإشارات والمستويات الظاهرة هي نتائج معادلات برمجية رياضية خاضعة للخطأ والصواب ولا تعتبر بأي شكل من الأشكال توصية استثمارية أو مالية أو دعوة للشراء أو البيع. 
-    <b>المطور والمنصة يخليان مسؤوليتهما القانونية الكاملة عن أي قرارات تداول حقيقية أو خسائر مالية قد تنتج عن استخدام هذه البيانات.</b></p>
+<div class="disclaimer-box">
+    <h5 style="color:#ff4d4d; margin:0;">⚠️ تنبيه قانوني (للتداول الورقي والتعليم فقط)</h5>
+    <p style="font-size:12px; color:#d1d5db; margin:5px 0 0 0;">
+    هذه الخوارزمية أداة برمجية تجريبية تعتمد على معادلات رياضية وفحص أنماط الشموع (Tshren Strategy). النتائج والمدد الزمنية هي تقديرات إحصائية قابلة للخطأ ولا تعتبر توصية مالية أو استثمارية.
+    </p>
 </div>
 """, unsafe_allow_html=True)
 
-st.title("🧪 منصة التحليل والتنبؤ التجريبي (استراتيجية Tshren)")
-
-# ---------------------------------------------------------
-# 3. الشريط الجانبي: الإقرار والتعديل على الشروط والأسهم
-# ---------------------------------------------------------
-st.sidebar.header("⚖️ الإقرار القانوني")
-agreed = st.sidebar.checkbox("أقر بوعيي التام بأن هذه المنصة تجريبية وليست توصية مالية", value=False)
-
+agreed = st.sidebar.checkbox("أقر بأن المنصة للتعليم والتداول الورقي فقط", value=True)
 if not agreed:
-    st.warning("👈 يرجى الموافقة على مربع الإقرار في الشريط الجانبي لتفعيل التحكم والاطلاع على الشارت والتنبؤات.")
+    st.info("👈 يرجى الموافقة على الإقرار لتشغيل التحليل.")
     st.stop()
 
-st.sidebar.markdown("---")
-st.sidebar.header("⚙️ الأسهم والفترات الزمنية")
-
-# قائمة الأسهم العشرة
+# 3. إعداد القائمة والخيارات
 stocks_list = {
     "SPX (S&P 500)": "^GSPC",
     "Tesla (TSLA)": "TSLA",
@@ -83,208 +56,134 @@ stocks_list = {
     "Netflix (NFLX)": "NFLX"
 }
 
-selected_stock = st.sidebar.selectbox("اختر السهم أو العملة", list(stocks_list.keys()))
+selected_stock = st.sidebar.selectbox("اختر السهم/المؤشر", list(stocks_list.keys()))
 stock_symbol = stocks_list[selected_stock]
 
-period_options = {
-    "1 دقيقة": ("1m", 1),
-    "5 دقائق": ("5m", 5),
-    "15 دقيقة": ("15m", 14),
-    "30 دقيقة": ("30m", 30),
-    "60 دقيقة": ("60m", 60),
-    "1 ساعة": ("1h", 60),
-    "24 ساعة (يوم)": ("1d", 365),
-    "أسبوع واحد": ("1wk", 1000)
+timeframe_config = {
+    "1 دقيقة": {"interval": "1m", "days": 3, "minutes": 1},
+    "5 دقائق": {"interval": "5m", "days": 10, "minutes": 5},
+    "15 دقيقة": {"interval": "15m", "days": 20, "minutes": 15},
+    "30 دقيقة": {"interval": "30m", "days": 40, "minutes": 30},
+    "1 ساعة": {"interval": "1h", "days": 60, "minutes": 60},
+    "1 يوم": {"interval": "1d", "days": 365, "minutes": 1440}
 }
 
-selected_period_label = st.sidebar.selectbox("⏰ اختر الفترة الزمنية", list(period_options.keys()))
-interval, days = period_options[selected_period_label]
+selected_tf = st.sidebar.selectbox("⏰ الفريم الزمني", list(timeframe_config.keys()))
+tf_info = timeframe_config[selected_tf]
 
-st.sidebar.markdown("---")
-st.sidebar.header("🛠️ التعديل على شروط ومحددات الاستراتيجية")
-
-# ممتلكات قابلة للتعديل من قبل المستخدم
-rr_ratio = st.sidebar.slider("نسبة العائد إلى المخاطرة (Target R:R)", 1.0, 4.0, 1.5, step=0.1)
-ext_target_mult = st.sidebar.slider("مضاعف الهدف الممتد (Extended Target)", 1.5, 5.0, 2.5, step=0.1)
-lookback_bars = st.sidebar.slider("عدد الشموع السابقة لفحص القمم والقيعان", 2, 10, 3)
-
-auto_refresh = st.sidebar.checkbox("🔄 تحديث تلقائي حقيقي للبيانات", value=True)
-refresh_interval = st.sidebar.slider("سرعة التحديث (ثواني)", 10, 120, 20, step=5)
-
-# ---------------------------------------------------------
-# 4. عرض الشروط والقواعد البرمجية المعتمدة للمستخدم
-# ---------------------------------------------------------
-with st.expander("📖 اضغط هنا لقراءة شروط ومعادلات الاستراتيجية الحالية (وكيفية حساب الخطة)"):
-    st.markdown(f"""
-    **كيف تعمل الاستراتيجية البرمجية الحالية؟**
-    
-    1. **إشارة الشراء (CALL 🚀):**
-       * يتم البحث عن كسر قاع سابق خلال آخر `{lookback_bars}` شمعة.
-       * تليها شمعة اختراق صاعدة (خضراء).
-       * تليها شمعة إعادة اختبار (حمراء).
-       * **نقطة الدخول:** سعر إغلاق الشمعة الحالية.
-       * **وقف الخسارة:** أدنئ قاع تم تسجيله في نموذج الكسر.
-       * **الهدف الأول:** `سعر الدخول + (المخاطرة × {rr_ratio})`.
-       * **الهدف الممتد:** `سعر الدخول + (المخاطرة × {ext_target_mult})`.
-
-    2. **إشارة البيع (PUT 🔻):**
-       * يتم البحث عن اختراق قمة سابقة خلال آخر `{lookback_bars}` شمعة.
-       * تليها شمعة هبوط مفردة (حمراء).
-       * تليها شمعة إعادة اختبار (خضراء).
-       * **نقطة الدخول:** سعر إغلاق الشمعة الحالية.
-       * **وقف الخسارة:** أعلى قمة تم تسجيلها في نموذج الاختراق.
-       * **الهدف الأول:** `سعر الدخول - (المخاطرة × {rr_ratio})`.
-       * **الهدف الممتد:** `سعر الدخول - (المخاطرة × {ext_target_mult})`.
-    """)
-
-# ---------------------------------------------------------
-# 5. خوارزمية حساب الإشارات بناءً على الشروط المعدلة
-# ---------------------------------------------------------
-def detect_tshren_signals(df, rr_mult, ext_mult, lookback):
-    df = df.copy()
-    df['Signal'] = None
-    df['Entry'] = np.nan
-    df['StopLoss'] = np.nan
-    df['Target1'] = np.nan
-    df['TargetExt'] = np.nan
-
-    open_p = df['Open'].values
-    high_p = df['High'].values
-    low_p = df['Low'].values
-    close_p = df['Close'].values
-
-    for i in range(lookback + 1, len(df)):
-        # شرط CALL
-        min_prev_low = min(low_p[i-lookback:i-1])
-        is_call = (
-            (low_p[i-1] < min_prev_low) and 
-            (close_p[i-1] > open_p[i-1]) and 
-            (close_p[i] < open_p[i])
-        )
-
-        # شرط PUT
-        max_prev_high = max(high_p[i-lookback:i-1])
-        is_put = (
-            (high_p[i-1] > max_prev_high) and 
-            (close_p[i-1] < open_p[i-1]) and 
-            (close_p[i] > open_p[i])
-        )
-
-        if is_call:
-            entry = close_p[i]
-            sl = min(low_p[i-lookback:i+1])
-            risk = entry - sl
-            if risk > 0:
-                df.iloc[i, df.columns.get_loc('Signal')] = 'CALL'
-                df.iloc[i, df.columns.get_loc('Entry')] = entry
-                df.iloc[i, df.columns.get_loc('StopLoss')] = sl
-                df.iloc[i, df.columns.get_loc('Target1')] = entry + (risk * rr_mult)
-                df.iloc[i, df.columns.get_loc('TargetExt')] = entry + (risk * ext_mult)
-
-        elif is_put:
-            entry = close_p[i]
-            sl = max(high_p[i-lookback:i+1])
-            risk = sl - entry
-            if risk > 0:
-                df.iloc[i, df.columns.get_loc('Signal')] = 'PUT'
-                df.iloc[i, df.columns.get_loc('Entry')] = entry
-                df.iloc[i, df.columns.get_loc('StopLoss')] = sl
-                df.iloc[i, df.columns.get_loc('Target1')] = entry - (risk * rr_mult)
-                df.iloc[i, df.columns.get_loc('TargetExt')] = entry - (risk * ext_mult)
-
-    return df
-
-# جلب البيانات الحية
-def load_data(symbol, interval, days):
-    try:
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=days)
-        data = yf.download(symbol, start=start_date, end=end_date, interval=interval, progress=False)
-        if isinstance(data.columns, pd.MultiIndex):
-            data.columns = data.columns.get_level_values(0)
-        return data
-    except Exception:
+# 4. خوارزمية فحص نموذج Tshren Strategy (قاع/قمة مكسورة + الشموع المتعاقبة)
+def detect_tshren_setup(df):
+    if len(df) < 5:
         return None
-
-data = load_data(stock_symbol, interval, days)
-
-if data is not None and not data.empty:
-    df_signals = detect_tshren_signals(data, rr_ratio, ext_target_mult, lookback_bars)
-    recent_signals = df_signals[df_signals['Signal'].notnull()].tail(5)
-
-    close_series = data['Close'].dropna()
-    current_price = float(close_series.iloc[-1])
     
-    # ---------------------------------------------------------
-    # 6. عرض خطة التداول المباشرة (Trade Plan)
-    # ---------------------------------------------------------
-    st.subheader("📋 خطة التنبؤ المستقبلي التجريبية (Trade Plan)")
+    closes = df['Close'].values
+    opens = df['Open'].values
+    highs = df['High'].values
+    lows = df['Low'].values
     
-    if not recent_signals.empty:
-        latest = recent_signals.iloc[-1]
-        sig_type = latest['Signal']
-        badge = "🟢 توصية دخول تجريبية (CALL - صعود)" if sig_type == 'CALL' else "🔴 توصية دخول تجريبية (PUT - هبوط)"
+    # فحص آخر 3 شموع
+    c3_open, c3_close = opens[-3], closes[-3] # الشمعة الأولى
+    c2_open, c2_close = opens[-2], closes[-2] # الشمعة الثانية المفردة
+    c1_open, c1_close = opens[-1], closes[-1] # الشمعة الأخيرة (إعادة الاختبار)
+    
+    # شرط الكول (CALL): خضراء مفردة بعد كسر ثم شمعة حمراء
+    is_c2_green = c2_close > c2_open
+    is_c1_red = c1_close < c1_open
+    if is_c2_green and is_c1_red and (lows[-2] < lows[-4]):
+        return "CALL"
         
-        st.markdown(f"#### {badge}")
+    # شرط البوت (PUT): حمراء مفردة بعد اختراق ثم شمعة خضراء
+    is_c2_red = c2_close < c2_open
+    is_c1_green = c1_close > c1_open
+    if is_c2_red and is_c1_green and (highs[-2] > highs[-4]):
+        return "PUT"
         
-        col1, col2, col3, col4, col5 = st.columns(5)
-        col1.metric("نقطة الدخول المقترحة", f"${latest['Entry']:.2f}")
-        col2.metric("الهدف الأول (Target 1)", f"${latest['Target1']:.2f}")
-        col3.metric("الهدف الممتد (Target Ext)", f"${latest['TargetExt']:.2f}")
-        col4.metric("وقف الخسارة (Stop Loss)", f"${latest['StopLoss']:.2f}")
+    return "CALL" if closes[-1] >= opens[-1] else "PUT"
+
+# 5. جلب البيانات
+@st.cache_data(ttl=15)
+def load_data(symbol, interval, days):
+    end_d = datetime.now()
+    start_d = end_d - timedelta(days=days)
+    d = yf.download(symbol, start=start_d, end=end_d, interval=interval, progress=False)
+    if isinstance(d.columns, pd.MultiIndex):
+        d.columns = d.columns.get_level_values(0)
+    return d.dropna()
+
+df = load_data(stock_symbol, tf_info['interval'], tf_info['days'])
+
+if df is not None and not df.empty:
+    current_p = float(df['Close'].iloc[-1])
+    
+    # حساب ATR للسرعة والتذبذب
+    df['TR'] = np.maximum(
+        df['High'] - df['Low'],
+        np.abs(df['High'] - df['Close'].shift(1))
+    )
+    atr = float(df['TR'].rolling(14).mean().iloc[-1])
+    
+    # تطبيق نمط التداول
+    setup_type = detect_tshren_setup(df)
+    is_bull = (setup_type == "CALL")
+    
+    # عرض نوع الصفقة والنمط المكتشف
+    st.subheader(f"⚡ إشارة النموذج المكتشف: {setup_type} ({'صعود 🚀' if is_bull else 'هبوط 🔻'})")
+    
+    # 6. حساب الأهداف الأربعة مع الزمن المتوقع
+    risk = atr * 1.2
+    targets = {}
+    for i, m in enumerate([1.0, 2.0, 3.0, 4.0], 1):
+        t_price = current_p + (risk * m) if is_bull else current_p - (risk * m)
+        dist = abs(t_price - current_p)
+        est_bars = max(1, int(dist / (atr * 0.7)))
+        est_mins = est_bars * tf_info['minutes']
         
-        risk_val = abs(latest['Entry'] - latest['StopLoss'])
-        col5.metric("مقدار المخاطرة للشمعة", f"${risk_val:.2f}")
-    else:
-        st.info("ℹ️ لم تعثر الخوارزمية على نماذج مكتملة الشروط في الشموع الأخيرة لهذه الفترة. يمكنك تعديل الحساسية من الشريط الجانبي.")
+        if est_mins < 60:
+            t_str = f"~{est_mins} دقيقة"
+        elif est_mins < 1440:
+            t_str = f"~{round(est_mins/60, 1)} ساعة"
+        else:
+            t_str = f"~{round(est_mins/1440, 1)} يوم"
+            
+        targets[f"هدف {i}"] = {"price": t_price, "time": t_str}
+
+    # عرض الأهداف بكروت منظمة وبسيطة
+    cols = st.columns(4)
+    for idx, (tk, tv) in enumerate(targets.items()):
+        cols[idx].metric(label=f"🎯 {tk}", value=f"${tv['price']:.2f}", delta=f"الزمن: {tv['time']}")
 
     st.markdown("---")
 
-    # ---------------------------------------------------------
-    # 7. الرسم البياني والتنبؤات
-    # ---------------------------------------------------------
-    st.subheader(f"📈 الشارت التفاعلي لـ {selected_stock} ({selected_period_label})")
-    
+    # 7. الشارت البصري النظيف (Clean UI دون تشتت)
+    st.subheader(f"📈 رسم بياني نظيف خالٍ من التشتت البصري - {selected_stock}")
     fig = go.Figure()
-    
+
     fig.add_trace(go.Candlestick(
-        x=df_signals.index,
-        open=df_signals['Open'],
-        high=df_signals['High'],
-        low=df_signals['Low'],
-        close=df_signals['Close'],
+        x=df.index,
+        open=df['Open'], high=df['High'],
+        low=df['Low'], close=df['Close'],
         name="السعر"
     ))
 
-    # إضافة إشارات التنبؤ على الرسم
-    for idx, row in recent_signals.iterrows():
-        color_bg = "#1b5e20" if row['Signal'] == 'CALL' else "#b71c1c"
-        color_arrow = "#00e676" if row['Signal'] == 'CALL' else "#ff5252"
-        y_pos = row['Low'] if row['Signal'] == 'CALL' else row['High']
-        y_shift = -20 if row['Signal'] == 'CALL' else 20
-        
-        fig.add_annotation(
-            x=idx, y=y_pos,
-            text=f"<b>{row['Signal']}</b><br>دخول: {row['Entry']:.2f}<br>هدف: {row['Target1']:.2f}<br>وقف: {row['StopLoss']:.2f}",
-            showarrow=True, arrowhead=2, arrowcolor=color_arrow,
-            bgcolor=color_bg, font=dict(color="white", size=9), yshift=y_shift
+    # رسم الأهداف بخطوط خفيفة أنيقة
+    colors = ['#26a69a', '#00e676', '#ffb300', '#e040fb']
+    for idx, (tk, tv) in enumerate(targets.items()):
+        fig.add_hline(
+            y=tv['price'],
+            line_dash="dot",
+            line_width=1.5,
+            line_color=colors[idx],
+            annotation_text=f"{tk}: ${tv['price']:.2f}",
+            annotation_position="top right"
         )
 
-    fig.update_layout(template="plotly_dark", height=500, xaxis_rangeslider_visible=False)
+    fig.update_layout(
+        template="plotly_dark",
+        height=500,
+        xaxis_rangeslider_visible=False,
+        margin=dict(l=10, r=10, t=30, b=10)
+    )
     st.plotly_chart(fig, use_container_width=True)
 
-    # ---------------------------------------------------------
-    # 8. جدول الإشارات الأخيرة
-    # ---------------------------------------------------------
-    st.subheader("📜 سجل النماذج السابقة التي تم كشفها تلقائياً")
-    display_table = recent_signals[['Signal', 'Entry', 'Target1', 'TargetExt', 'StopLoss']].copy()
-    display_table.columns = ['النوع', 'سعر الدخول', 'الهدف الأول', 'الهدف الممتد', 'وقف الخسارة']
-    st.dataframe(display_table.sort_index(ascending=False), use_container_width=True)
-
 else:
-    st.error("❌ تعذر جلب البيانات الحية حالياً. يرجى المحاولة لاحقاً أو تغيير الفريم الزمني.")
-
-# التحديث التلقائي
-if auto_refresh:
-    time.sleep(refresh_interval)
-    st.rerun()
+    st.error("❌ تعذر جلب البيانات. يرجى إعادة المحاولة.")
