@@ -10,7 +10,7 @@ import numpy as np
 
 # إعدادات الصفحة
 st.set_page_config(
-    page_title="📈 منصة تحليل الأسهم المتقدمة - بيانات حية",
+    page_title="📈 منصة تحليل تجريبي للتعلم - تنفيذ ورقي (تجريبي)",
     page_icon="💹",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -39,8 +39,8 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("�� منصة تحليل الأسهم الأمريكية - بيانات حية ومتحدثة")
-st.caption("🔴 متصلة بأسواق أمريكا الحية | بيانات فورية كل ثانية | معايرة للأسواق الحقيقية")
+st.title("منصة تحليل تجريبي للتعلم - تنفيذ ورقي (تجريبي)")
+st.caption("🔰 بيانات تجريبية للتعلم على التنفيذ الورقي — غير متصلة بالتداول الحقيقي.")
 
 # شريط المدخلات الجانبي
 st.sidebar.header("⚙️ إعدادات البحث والتحديث")
@@ -141,10 +141,23 @@ if data is not None and len(data) > 0:
         """, unsafe_allow_html=True)
     
     # الحصول على معلومات السهم الحالية - مع معالجة الأخطاء
-    current_price = float(data['Close'].iloc[-1])
-    
-    if len(data) > 1:
-        previous_price = float(data['Close'].iloc[-2])
+    # تأكد أن لدينا عمود Close صالح أو نستخدم Adj Close كبديل، ونتجاهل القيم NaN في نهاية السلسلة
+    if 'Close' not in data.columns:
+        if 'Adj Close' in data.columns:
+            data['Close'] = data['Adj Close']
+        else:
+            st.error("❌ العمود 'Close' غير موجود في البيانات المستلمة من Yahoo Finance.")
+            st.stop()
+
+    # إزالة القيم الفارغة من سلسلة الإغلاق ثم أخذ آخر قيمة صالحة
+    close_series = data['Close'].dropna()
+    if close_series.empty:
+        st.error("❌ لا توجد قيم صالحة في عمود 'Close' (كل القيم NaN أو الإطار فارغ).")
+        st.stop()
+
+    current_price = float(close_series.iloc[-1])
+    if len(close_series) > 1:
+        previous_price = float(close_series.iloc[-2])
     else:
         previous_price = current_price
     
@@ -157,13 +170,26 @@ if data is not None and len(data) > 0:
         price_change_pct = 0
     
     # الأعلى والأقل
-    high_price = float(data['High'].max())
-    low_price = float(data['Low'].min())
-    volume_avg = float(data['Volume'].mean())
-    current_volume = float(data['Volume'].iloc[-1])
+    # تحقق من وجود الأعمدة قبل استخدامهم
+    if 'High' in data.columns and not data['High'].dropna().empty:
+        high_price = float(data['High'].max())
+    else:
+        high_price = current_price
+
+    if 'Low' in data.columns and not data['Low'].dropna().empty:
+        low_price = float(data['Low'].min())
+    else:
+        low_price = current_price
+
+    if 'Volume' in data.columns and not data['Volume'].dropna().empty:
+        volume_avg = float(data['Volume'].mean())
+        current_volume = float(data['Volume'].iloc[-1])
+    else:
+        volume_avg = 0.0
+        current_volume = 0.0
     
     # عرض المؤشرات الرئيسية
-    st.subheader("📊 مستويات السهم الحالية - بيانات حية 🔴")
+    st.subheader("📊 مستويات السهم الحالية - بيانات تجريبية 🔰")
     
     col1, col2, col3, col4, col5 = st.columns(5)
     
@@ -182,7 +208,11 @@ if data is not None and len(data) > 0:
         st.metric("أقل سعر 📉", f"${low_price:.2f}")
     
     with col4:
-        st.metric("الفتح 🔓", f"${float(data['Open'].iloc[-1]):.2f}")
+        # تحقق قبل استخدام عمود Open
+        if 'Open' in data.columns and not data['Open'].dropna().empty:
+            st.metric("الفتح 🔓", f"${float(data['Open'].iloc[-1]):.2f}")
+        else:
+            st.metric("الفتح 🔓", "N/A")
     
     with col5:
         st.metric("الحجم الحالي 📦", f"{int(current_volume):,.0f}")
@@ -266,7 +296,7 @@ if data is not None and len(data) > 0:
     ))
     
     fig.update_layout(
-        title=f"تحليل السهم: {selected_stock} - {selected_period_label} | البيانات حية 🔴",
+        title=f"تحليل السهم: {selected_stock} - {selected_period_label} | بيانات تجريبية 🔰",
         xaxis_title="التاريخ والوقت ⏰",
         yaxis_title="السعر ($) 💵",
         hovermode='x unified',
@@ -432,12 +462,12 @@ if data is not None and len(data) > 0:
     
     # ملاحظات هامة
     st.info("""
-    📌 **ملاحظات هامة:**
-    - 🔴 البيانات متصلة مباشرة بأسواق أمريكا الحية عبر Yahoo Finance API
-    - ⏱️ وقت جلب البيانات يختلف حسب الفترة الزمنية وسرعة الاتصال
-    - 📊 الأهداف محسوبة بناءً على Average True Range (ATR) والتقلب الحالي
-    - 🎯 استخدم المستويات كمرجع فقط، وتأكد من التحليل الفني الإضافي
-    - 🔄 البيانات تتحدث تلقائياً كل دقيقة أو حسب اختيارك
+    📌 **ملاحظات هامة (توضيحية):**
+    - 🔰 هذه الواجهة مخصصة لأغراض تجريبية وتعلُّم التنفيذ الورقي فقط.
+    - ⛔ لا تعتبر هذه منصة للتداول الفعلي — لا تُنفّذ أوامر حقيقية عبرها.
+    - 📊 البيانات قد تكون مأخوذة من مصادر عامة لأغراض العرض والتجربة ولا تعني وجود اتصال مباشر بالتداول الحي.
+    - 🎯 استخدم المستويات كمرجع تعليمي فقط، وقم بعمل تحليلات إضافية قبل أي قرار واقعي.
+    - 🔄 التحديث التلقائي مخصص للتجربة ولا يضمن تزامناً مع أسواق حقيقية.
     """)
     
 else:
