@@ -6,8 +6,7 @@ from datetime import datetime, timedelta
 import plotly.graph_objects as go
 import plotly.express as px
 import time
-import requests
-from bs4 import BeautifulSoup
+import numpy as np
 
 # إعدادات الصفحة
 st.set_page_config(
@@ -40,7 +39,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🚀 منصة تحليل الأسهم الأمريكية - بيانات حية ومتحدثة")
+st.title("�� منصة تحليل الأسهم الأمريكية - بيانات حية ومتحدثة")
 st.caption("🔴 متصلة بأسواق أمريكا الحية | بيانات فورية كل ثانية | معايرة للأسواق الحقيقية")
 
 # شريط المدخلات الجانبي
@@ -141,17 +140,27 @@ if data is not None and len(data) > 0:
         </div>
         """, unsafe_allow_html=True)
     
-    # الحصول على معلومات السهم الحالية
-    current_price = data['Close'].iloc[-1]
-    previous_price = data['Close'].iloc[-2] if len(data) > 1 else current_price
-    price_change = current_price - previous_price
-    price_change_pct = (price_change / previous_price) * 100 if previous_price != 0 else 0
+    # الحصول على معلومات السهم الحالية - مع معالجة الأخطاء
+    current_price = float(data['Close'].iloc[-1])
+    
+    if len(data) > 1:
+        previous_price = float(data['Close'].iloc[-2])
+    else:
+        previous_price = current_price
+    
+    # حساب التغيير
+    if previous_price != 0:
+        price_change = current_price - previous_price
+        price_change_pct = (price_change / previous_price) * 100
+    else:
+        price_change = 0
+        price_change_pct = 0
     
     # الأعلى والأقل
-    high_price = data['High'].max()
-    low_price = data['Low'].min()
-    volume_avg = data['Volume'].mean()
-    current_volume = data['Volume'].iloc[-1]
+    high_price = float(data['High'].max())
+    low_price = float(data['Low'].min())
+    volume_avg = float(data['Volume'].mean())
+    current_volume = float(data['Volume'].iloc[-1])
     
     # عرض المؤشرات الرئيسية
     st.subheader("📊 مستويات السهم الحالية - بيانات حية 🔴")
@@ -173,10 +182,10 @@ if data is not None and len(data) > 0:
         st.metric("أقل سعر 📉", f"${low_price:.2f}")
     
     with col4:
-        st.metric("الفتح 🔓", f"${data['Open'].iloc[-1]:.2f}")
+        st.metric("الفتح 🔓", f"${float(data['Open'].iloc[-1]):.2f}")
     
     with col5:
-        st.metric("الحجم الحالي 📦", f"{current_volume:,.0f}")
+        st.metric("الحجم الحالي 📦", f"{int(current_volume):,.0f}")
     
     st.markdown("---")
     
@@ -186,10 +195,13 @@ if data is not None and len(data) > 0:
     col_info1, col_info2, col_info3, col_info4 = st.columns(4)
     
     with col_info1:
-        st.metric("متوسط الحجم 📊", f"{volume_avg:,.0f}")
+        st.metric("متوسط الحجم 📊", f"{int(volume_avg):,.0f}")
     
     with col_info2:
-        volume_ratio = (current_volume / volume_avg * 100) if volume_avg > 0 else 0
+        if volume_avg > 0:
+            volume_ratio = (current_volume / volume_avg * 100)
+        else:
+            volume_ratio = 0
         st.metric("نسبة الحجم %", f"{volume_ratio:.1f}%")
     
     with col_info3:
@@ -197,7 +209,10 @@ if data is not None and len(data) > 0:
         st.metric("نطاق الفترة 🔄", f"${daily_range:.2f}")
     
     with col_info4:
-        volatility = (daily_range / current_price * 100) if current_price > 0 else 0
+        if current_price > 0:
+            volatility = (daily_range / current_price * 100)
+        else:
+            volatility = 0
         st.metric("التقلب % 📈", f"{volatility:.2f}%")
     
     st.markdown("---")
@@ -309,9 +324,9 @@ if data is not None and len(data) > 0:
     close_prices = data['Close'].values
     
     # المتوسطات
-    ma_5 = data['Close'].rolling(window=min(5, len(data))).mean().iloc[-1]
-    ma_20 = data['Close'].rolling(window=min(20, len(data))).mean().iloc[-1]
-    ma_50 = data['Close'].rolling(window=min(50, len(data))).mean().iloc[-1]
+    ma_5 = float(data['Close'].rolling(window=min(5, len(data))).mean().iloc[-1])
+    ma_20 = float(data['Close'].rolling(window=min(20, len(data))).mean().iloc[-1])
+    ma_50 = float(data['Close'].rolling(window=min(50, len(data))).mean().iloc[-1])
     
     # المقاومة والدعم (استخدام الأعلى والأقل)
     resistance_1 = high_price
@@ -319,6 +334,7 @@ if data is not None and len(data) > 0:
     pivot = (high_price + low_price + current_price) / 3
     
     # الأهداف بناءً على التقلب
+    daily_range = high_price - low_price
     atr_value = daily_range * 1.5  # تقريب ATR
     target_1 = current_price + atr_value
     target_2 = current_price + (atr_value * 1.5)
@@ -338,7 +354,8 @@ if data is not None and len(data) > 0:
         st.metric("المتوسط 50 📉", f"${ma_50:.2f}")
     
     with col_stat4:
-        st.metric("الانحراف المعياري", f"${data['Close'].std():.2f}")
+        std_dev = float(data['Close'].std())
+        st.metric("الانحراف المعياري", f"${std_dev:.2f}")
     
     st.markdown("---")
     
